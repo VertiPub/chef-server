@@ -39,8 +39,12 @@ package_local_path = "#{Chef::Config[:file_cache_path]}/#{package_name}"
 if ::URI.parse(omnibus_package).absolute?
   remote_file package_local_path do
     source omnibus_package
-    checksum node['chef-server']['package_checksum'] if node['chef-server']['package_checksum']
-    action :create
+    if node['chef-server']['package_checksum']
+      checksum node['chef-server']['package_checksum']
+      action :create
+    else
+      action :create_if_missing
+    end
   end
 # else we assume it's on the local machine
 else
@@ -48,7 +52,7 @@ else
 end
 
 # install the platform package
-package package_name do
+package package_name do # ignore ~FC009 known bug in food critic causes this to trigger see Foodcritic Issue #137
   source package_local_path
   provider case node["platform_family"]
            when "debian"; Chef::Provider::Package::Dpkg
